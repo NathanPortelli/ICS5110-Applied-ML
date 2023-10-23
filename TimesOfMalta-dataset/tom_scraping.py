@@ -2,40 +2,41 @@ import requests
 import re
 import csv
 
+years = [2023, 2022, 2021, 2020]
 # Category names
 # Years - Years being taken into consideration (to divide csv files)
 # Loops - Number of search pages per year
 categories = {
     'national': {
-        'years': [2023, 2022, 2021, 2020],
+        'years': years,
         'loops': [282, 361, 396, 406]
     },
     'world': {
-        'years': [2023, 2022, 2021, 2020],
+        'years': years,
         'loops': [116, 157, 163, 140]
     },
     'opinion': {
-        'years': [2023, 2022, 2021, 2020],
+        'years': years,
         'loops': [80, 110, 113, 92]
     },
     'sport': {
-        'years': [2023, 2022, 2021, 2020],
+        'years': years,
         'loops': [197, 303, 259, 226]
     },
     'business': {
-        'years': [2023, 2022, 2021, 2020],
+        'years': years,
         'loops': [86, 127, 162, 125]
     },
     'tech': {
-        'years': [2023, 2022, 2021, 2020],
+        'years': years,
         'loops': [16, 18, 21, 8]
     },
     'entertainment': {
-        'years': [2023, 2022, 2021, 2020],
+        'years': years,
         'loops': [67, 96, 93, 97]
     },
     'community': {
-        'years': [2023, 2022, 2021, 2020],
+        'years': years,
         'loops': [98, 107, 135, 106]
     }
 }
