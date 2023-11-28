@@ -1,6 +1,4 @@
 import numpy as np
-import pandas as pd
-from sklearn.model_selection import train_test_split
 
 class Node():
     def __init__(self, feature_index=None, threshold=None, left=None, right=None, var_red=None, value=None):
