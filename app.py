@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import gradio as gr
+import matplotlib.pyplot as plt
+import os
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, explained_variance_score
@@ -13,6 +15,13 @@ from sklearn.ensemble import RandomForestRegressor as SKLearnRandomForestRegress
 from sklearn.linear_model import LinearRegression as SKLearnLinearRegression  # TODO: Add Graphs
 from sklearn.tree import DecisionTreeRegressor as SKLearnDecisionTreeRegressor
 
+
+# Specify the directory path
+directory_path = "./plots/"
+
+# Create the directory if it doesn't exist
+if not os.path.exists(directory_path):
+    os.makedirs(directory_path)
 
 # Dataset exported prior to feature scaling/engineering -- for user readability
 df_read = pd.read_csv('./NSO_Population_Sex_dataset/NSO_POPULATION_DATA_PREFEATURE.csv')
@@ -55,6 +64,41 @@ mapping_display = {
     },
 }
 
+def scatter_plot_graph(x, y, legend_labels):
+    for result in x:
+        plt.scatter(result, y, alpha=0.5)
+    plt.xlabel('Actual')
+    plt.ylabel('Predicted')
+    plt.title('Actual vs Predicted Values Scatter Plot')
+    plt.legend(legend_labels, loc='best')
+
+    # Save the plot directly to a file in the specified directory
+    plot_filename = os.path.join(directory_path, "scatter_plot.png")
+    plt.savefig(plot_filename)
+
+    # Close the plot to avoid displaying it in the Gradio interface
+    plt.close()
+
+    # Return the filename of the saved plot
+    return plot_filename
+
+def line_plot_graph(x, legend_labels):
+    for result in x:
+        plt.plot(result, alpha=0.5)
+    plt.xlabel('Sample Index')
+    plt.ylabel('Target Variable (Values)')
+    plt.title('Actual vs Predicted Line Plot - Custom Implementations')
+    plt.legend(legend_labels, loc='best')
+
+    # Save the plot directly to a file in the specified directory
+    plot_filename = os.path.join(directory_path, "line_plot.png")
+    plt.savefig(plot_filename)
+
+    # Close the plot to avoid displaying it in the Gradio interface
+    plt.close()
+
+    # Return the filename of the saved plot
+    return plot_filename
 
 # Decision Tree - Custom
 def decision_tree(X_train, y_train, X_test, max_depth, min_samples_split):
@@ -211,7 +255,15 @@ def process_all_algorithms(dt_max_depth, dt_min_samples_split, dt_min_samples_le
     all_predictions["Linear Regression - SKLearn"] = prediction_lrs
     all_predictions = pd.DataFrame(all_predictions)
 
-    return all_predictions, df_results
+    scatter_plot_path = scatter_plot_graph(
+    [prediction_dt.to_numpy(), prediction_dts.to_numpy(), prediction_rf.to_numpy(), prediction_rfsdt.to_numpy(), prediction_rfs.to_numpy(), prediction_lr.to_numpy(), prediction_lrs.to_numpy()], 
+    y_test.to_numpy(),
+    ['Custom DT', 'SKLearn DT', 'Custom RF', 'Custom RF w/ SKLearn DT', 'SKLearn RF', 'Custom LR', 'SKLearn LR'])
+    line_plot_path = line_plot_graph(
+    [y_test.to_numpy(), prediction_dt.to_numpy(), prediction_dts.to_numpy(), prediction_rf.to_numpy(), prediction_rfsdt.to_numpy(), prediction_rfs.to_numpy(), prediction_lr.to_numpy(), prediction_lrs.to_numpy()], 
+    ['Actual, Custom DT', 'SKLearn DT', 'Custom RF', 'Custom RF w/ SKLearn DT', 'SKLearn RF', 'Custom LR', 'SKLearn LR'])
+
+    return all_predictions, df_results, scatter_plot_path, line_plot_path
 
 
 # When the data/algorithms are filtered & 'All' button
@@ -387,7 +439,8 @@ with gr.Blocks() as gr_output:
             gr.Markdown("## Prediction Results")
             predictions = gr.Dataframe(label="Predicted vs Actual", height=300)
             gr.Markdown("## Graph Plots")
-            gr.Markdown("### todo: add graphs")
+            scatter_plot_path = gr.Image(label="Scatter Plot")
+            line_plot_path = gr.Image(label="Line Plot")
 
     # Filtering logic
     submit_btn.click(filter_data, inputs=[record, alg, district, year,
@@ -400,7 +453,7 @@ with gr.Blocks() as gr_output:
     all_btn.click(process_all_algorithms, inputs=[dt_max_depth, dt_min_samples_split, dt_min_samples_leaf,
                                                   rf_n_estimators, rf_max_depth,
                                                   lr_learning_rate, lr_num_iterations],
-                  outputs=[predictions, evaluation])
+                  outputs=[predictions, evaluation, scatter_plot_path, line_plot_path])
 
 if __name__ == "__main__":
     gr_output.launch()
