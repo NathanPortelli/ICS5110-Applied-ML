@@ -1,2 +1,11 @@
-# ICS5110-Applied-ML
-Project created in fulfilment of the Masters in AI study unit ICS5110 - Applied Machine Learning
+---
+title: ICS5110 Gradio Web Tool
+emoji: 🐠
+colorFrom: indigo
+colorTo: gray
+sdk: gradio
+sdk_version: 4.9.1
+app_file: app.py
+pinned: false
+license: apache-2.0
+---

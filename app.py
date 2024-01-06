@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import gradio as gr
 import matplotlib.pyplot as plt
 
@@ -11,13 +10,13 @@ from LinearRegression import LinearRegression
 from DecisionTreeRegressor import DecisionTreeRegressor
 
 from sklearn.ensemble import RandomForestRegressor as SKLearnRandomForestRegressor
-from sklearn.linear_model import LinearRegression as SKLearnLinearRegression  # TODO: Add Graphs
+from sklearn.linear_model import LinearRegression as SKLearnLinearRegression
 from sklearn.tree import DecisionTreeRegressor as SKLearnDecisionTreeRegressor
 
 # Dataset exported prior to feature scaling/engineering -- for user readability
-df_read = pd.read_csv('./NSO_Population_Sex_dataset/NSO_POPULATION_DATA_PREFEATURE.csv')
+df_read = pd.read_csv('NSO_Population_Sex_dataset/NSO_POPULATION_DATA_PREFEATURE.csv')
 # Cleaned dataset after feature scaling/engineering -- for model training
-df = pd.read_csv('./NSO_Population_Sex_dataset/NSO_POPULATION_DATA_CLEANED.csv')
+df = pd.read_csv('NSO_Population_Sex_dataset/NSO_POPULATION_DATA_CLEANED.csv')
 
 feature_cols = ['District', 'Sex', 'Year', 'Population_Growth_Rate', 'Average_Population']
 X = pd.get_dummies(df[feature_cols], columns=['District', 'Sex'])  # for converting to categorical variables
@@ -55,18 +54,17 @@ mapping_display = {
     },
 }
 
+
 def scatter_plot_graph(x, y, legend_labels):
     fig, ax = plt.subplots()
     for result in x:
         ax.scatter(result, y, alpha=0.5)
     ax.set_xlabel('Actual')
     ax.set_ylabel('Predicted')
-    ax.set_title('Actual vs Predicted Values Scatter Plot')
     ax.legend(legend_labels, loc='best')
-
     plt.close()
-
     return fig
+
 
 def line_plot_graph(x, legend_labels):
     fig, ax = plt.subplots()
@@ -74,12 +72,22 @@ def line_plot_graph(x, legend_labels):
         ax.plot(result, alpha=0.5)
     ax.set_xlabel('Sample Index')
     ax.set_ylabel('Target Variable (Values)')
-    ax.set_title('Actual vs Predicted Line Plot')
     ax.legend(legend_labels, loc='best')
-
     plt.close()
-
     return fig
+
+
+def residual_plot_graph(x, y, color='black'):
+    fig, ax = plt.subplots()
+    # Avoiding x != y error
+    for i in range(len(x)):
+        ax.scatter(x[i], y[i] - x[i], alpha=0.5, c=color)
+    ax.set_xlabel('Predicted')
+    ax.set_ylabel('Residuals')
+    plt.axhline(y=0, color='r', linestyle='--', label='Residuals Mean')
+    plt.close()
+    return fig
+
 
 # Decision Tree - Custom
 def decision_tree(X_train, y_train, X_test, max_depth, min_samples_split):
@@ -141,11 +149,11 @@ def linear_regression(X_train, y_train, X_test, learning_rate, num_iterations):
 
 
 # Linear Regression - SKLearn
-def linear_regression_sklearn(X_train, y_train, X_test, learning_rate, num_iterations):
-    Custom_Linear_Regression = LinearRegression(learning_rate=learning_rate, num_iterations=num_iterations)
-    Custom_Linear_Regression.fit(X_train, y_train)
-    Custom_Linear_Regression_Prediction = Custom_Linear_Regression.predict(X_test)
-    return Custom_Linear_Regression_Prediction
+def linear_regression_sklearn(X_train, y_train, X_test):
+    SKLearn_Linear_Regression = SKLearnLinearRegression()
+    SKLearn_Linear_Regression.fit(X_train, y_train)
+    SKLearn_Linear_Regression_Prediction = SKLearn_Linear_Regression.predict(X_test)
+    return SKLearn_Linear_Regression_Prediction
 
 
 def evaluate_algorithm(algorithm_function, X_train, y_train, X_test, y_test, algorithm_parameters):
@@ -217,8 +225,7 @@ def process_all_algorithms(dt_max_depth, dt_min_samples_split, dt_min_samples_le
     # Linear Regression - SKLearn
     prediction_lrs, mae_lrs, mse_lrs, rmse_lrs, r2_lrs, variance_lrs = evaluate_algorithm(linear_regression_sklearn,
                                                                                           X_train, y_train, X_test,
-                                                                                          y_test, {"learning_rate": lr_learning_rate,
-                                                                       "num_iterations": lr_num_iterations})
+                                                                                          y_test, {})
     results["Linear Regression - SKLearn"] = {"Algorithm": "Linear Regression - SKLearn", "MAE": mae_lrs,
                                               "MSE": mse_lrs, "RMSE": rmse_lrs, "R2": r2_lrs,
                                               "Explained Variance": variance_lrs}
@@ -237,14 +244,59 @@ def process_all_algorithms(dt_max_depth, dt_min_samples_split, dt_min_samples_le
     all_predictions = pd.DataFrame(all_predictions)
 
     scatter_plot = scatter_plot_graph(
-    [prediction_dt.to_numpy(), prediction_dts.to_numpy(), prediction_rf.to_numpy(), prediction_rfsdt.to_numpy(), prediction_rfs.to_numpy(), prediction_lr.to_numpy(), prediction_lrs.to_numpy()], 
+    [prediction_dt.to_numpy(), prediction_dts.to_numpy(), prediction_rf.to_numpy(), prediction_rfsdt.to_numpy(), prediction_rfs.to_numpy(), prediction_lr.to_numpy(), prediction_lrs.to_numpy()],
     y_test.to_numpy(),
     ['Custom DT', 'SKLearn DT', 'Custom RF', 'Custom RF w/ SKLearn DT', 'SKLearn RF', 'Custom LR', 'SKLearn LR'])
+    custom_scatter_plot = scatter_plot_graph(
+        [prediction_dt.to_numpy(), prediction_rf.to_numpy(), prediction_rfsdt.to_numpy(), prediction_lr.to_numpy()],
+        y_test.to_numpy(),
+        ['Custom DT', 'Custom RF', 'Custom RF w/ SKLearn DT', 'Custom LR'])
+    sklearn_scatter_plot = scatter_plot_graph(
+        [prediction_dts.to_numpy(), prediction_rfs.to_numpy(), prediction_lrs.to_numpy()], y_test.to_numpy(),
+        ['SKLearn DT', 'SKLearn RF', 'SKLearn LR'])
+    dt_scatter_plot = scatter_plot_graph(
+        [prediction_dt.to_numpy(), prediction_dts.to_numpy()], y_test.to_numpy(),
+        ['Custom DT', 'SKLearn DT'])
+    rf_scatter_plot = scatter_plot_graph(
+        [prediction_rf.to_numpy(), prediction_rfsdt.to_numpy(), prediction_rfs.to_numpy()], y_test.to_numpy(),
+        ['Custom RF', 'Custom RF w/ SKLearn DT', 'SKLearn RF'])
+    lr_scatter_plot = scatter_plot_graph(
+        [prediction_lr.to_numpy(), prediction_lrs.to_numpy()], y_test.to_numpy(),
+        ['Custom LR', 'SKLearn LR'])
+    
     line_plot = line_plot_graph(
-    [y_test.to_numpy(), prediction_dt.to_numpy(), prediction_dts.to_numpy(), prediction_rf.to_numpy(), prediction_rfsdt.to_numpy(), prediction_rfs.to_numpy(), prediction_lr.to_numpy(), prediction_lrs.to_numpy()], 
-    ['Actual, Custom DT', 'SKLearn DT', 'Custom RF', 'Custom RF w/ SKLearn DT', 'SKLearn RF', 'Custom LR', 'SKLearn LR'])
+    [y_test.to_numpy(), prediction_dt.to_numpy(), prediction_dts.to_numpy(), prediction_rf.to_numpy(), 
+     prediction_rfsdt.to_numpy(), prediction_rfs.to_numpy(), prediction_lr.to_numpy(), prediction_lrs.to_numpy()],
+    ['Actual', 'Custom DT', 'SKLearn DT', 'Custom RF', 'Custom RF w/ SKLearn DT', 'SKLearn RF', 'Custom LR',
+     'SKLearn LR'])
+    custom_line_plot = line_plot_graph(
+        [y_test.to_numpy(), prediction_dt.to_numpy(), prediction_rf.to_numpy(), prediction_rfsdt.to_numpy(), prediction_lr.to_numpy()],
+        ['Actual', 'Custom DT', 'Custom RF', 'Custom RF w/ SKLearn DT', 'Custom LR'])
+    sklearn_line_plot = line_plot_graph(
+        [y_test.to_numpy(), prediction_dts.to_numpy(), prediction_rfs.to_numpy(), prediction_lrs.to_numpy()],
+        ['Actual', 'SKLearn DT', 'SKLearn RF', 'SKLearn LR'])
+    dt_line_plot = line_plot_graph(
+        [y_test.to_numpy(), prediction_dt.to_numpy(), prediction_dts.to_numpy()],
+        ['Actual', 'Custom DT', 'SKLearn DT'])
+    rf_line_plot = line_plot_graph(
+        [y_test.to_numpy(), prediction_rf.to_numpy(), prediction_rfsdt.to_numpy(), prediction_rfs.to_numpy()],
+        ['Actual', 'Custom RF', 'Custom RF w/ SKLearn DT', 'SKLearn RF'])
+    lr_line_plot = line_plot_graph(
+        [y_test.to_numpy(), prediction_lr.to_numpy(), prediction_lrs.to_numpy()],
+        ['Actual', 'Custom LR', 'SKLearn LR'])
 
-    return all_predictions, df_results, scatter_plot, line_plot
+    dt_residual_plot = residual_plot_graph(prediction_dt.to_numpy(), y_test.to_numpy())
+    dts_residual_plot = residual_plot_graph(prediction_dts.to_numpy(), y_test.to_numpy())
+    rf_residual_plot = residual_plot_graph(prediction_rf.to_numpy(), y_test.to_numpy())
+    rfs_residual_plot = residual_plot_graph(prediction_rfs.to_numpy(), y_test.to_numpy())
+    rfsdt_residual_plot = residual_plot_graph(prediction_rfsdt.to_numpy(), y_test.to_numpy())
+    lr_residual_plot = residual_plot_graph(prediction_lr.to_numpy(), y_test.to_numpy())
+    lrs_residual_plot = residual_plot_graph(prediction_lrs.to_numpy(), y_test.to_numpy())
+
+    return (all_predictions, df_results, scatter_plot, custom_scatter_plot, sklearn_scatter_plot, dt_scatter_plot,
+            rf_scatter_plot, lr_scatter_plot, line_plot, custom_line_plot, sklearn_line_plot, dt_line_plot,
+            rf_line_plot, lr_line_plot, dt_residual_plot, dts_residual_plot, rf_residual_plot, rfs_residual_plot,
+            rfsdt_residual_plot, lr_residual_plot, lrs_residual_plot)
 
 
 # When the data/algorithms are filtered & 'All' button
@@ -252,10 +304,10 @@ def filter_data(records, algorithm, selected_district, selected_year, dt_max_dep
                 dt_min_samples_leaf, rf_n_estimators, rf_max_depth, lr_learning_rate, lr_num_iterations):
     if algorithm == "All" or algorithm is None:
         # Process all algorithms
-        df_predictions, df_results = process_all_algorithms(dt_max_depth, dt_min_samples_split, dt_min_samples_leaf,
+        df_predictions, df_results, scatter_plot, custom_scatter_plot, sklearn_scatter_plot, dt_scatter_plot, rf_scatter_plot, lr_scatter_plot, line_plot, custom_line_plot, sklearn_line_plot, dt_line_plot, rf_line_plot, lr_line_plot, dt_residual_plot, dts_residual_plot, rf_residual_plot, rfs_residual_plot, rfsdt_residual_plot, lr_residual_plot, lrs_residual_plot = process_all_algorithms(dt_max_depth, dt_min_samples_split, dt_min_samples_leaf,
                                                             rf_n_estimators, rf_max_depth, lr_learning_rate,
                                                             lr_num_iterations)
-        return records, df_predictions, X_test, None, df_results
+        return records, df_predictions, X_test, None, df_results, scatter_plot, custom_scatter_plot, sklearn_scatter_plot, dt_scatter_plot, rf_scatter_plot, lr_scatter_plot, line_plot, custom_line_plot, sklearn_line_plot, dt_line_plot, rf_line_plot, lr_line_plot, dt_residual_plot, dts_residual_plot, rf_residual_plot, rfs_residual_plot, rfsdt_residual_plot, lr_residual_plot, lrs_residual_plot
 
     # Convert selected district to the corresponding value from district_mapping_display
     selected_district_value = mapping_display["district"].get(selected_district, None)
@@ -346,25 +398,28 @@ def filter_data(records, algorithm, selected_district, selected_year, dt_max_dep
 
     all_predictions = pd.DataFrame(all_predictions)
 
-    return filtered_data, all_predictions, X_test, filtered_X_test, df_results
+    return filtered_data, all_predictions, X_test, filtered_X_test, df_results, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
 
 
-with gr.Blocks() as gr_output:
+with gr.Blocks(theme='ParityError/Interstellar') as gr_output:
     alg, district, year = None, None, None  # Initialising inputs for use by all_btn
 
     gr.Markdown(
         """
-        # ICS5110 - Applied Machine Learning
-
-        ### Created in partial fulfilment of the requirements for the ICS5110 Applied Machine Learning project by: 
-        Nathan Camilleri, Nathan Portelli, Oleg Grech.
-        #### January 2024
+        # Machine Learning Approaches to Ethical Analysis of Statistics 
+        ## January 2024
+        ### Created in partial fulfillment of the requirements for the ICS5110 Applied Machine Learning project by: Nathan Camilleri, Nathan Portelli, Oleg Grech.
+        Email: {nathan.camillieri.19, nathan.portelli.19, oleg.grech.19}@um.edu.mt
+        ### Full project code available at: 
+        [github.com/NathanPortelli/ICS5110-Applied-ML](https://github.com/NathanPortelli/ICS5110-Applied-ML/)
+        ### Instructions: 
+        Click 'Run all algorithms/datasets' to run all algorithms without filtering, or choose the available filters and click 'Run'. You may also edit the parameters of each algorithm type.
         """)
     with gr.Row():
         with gr.Column():
             gr.Markdown("# Inputs")
+            gr.Markdown("### NSO Malta - 'Total Population by region, district and locality' Dataset")
             record = gr.Dataframe(
-                label="NSO Malta - 'Total Population by region, district and locality' Dataset",
                 value=df_read,
                 headers=["District", "Sex", "Year", "Population"],
                 datatype=["number", "bool", "number", "number"],
@@ -372,8 +427,28 @@ with gr.Blocks() as gr_output:
                 height=325,
                 interactive=False,
             )
+            gr.Markdown("## Parameters")
+            with gr.Row():
+                with gr.Tab("Decision Tree"):
+                    dt_max_depth = gr.Slider(label="Max Depth", minimum=1, maximum=100, value=100, interactive=True,
+                                             step=1)
+                    dt_min_samples_split = gr.Slider(label="Min Samples Split", minimum=0, maximum=20, value=2,
+                                                     interactive=True, step=1)
+                    dt_min_samples_leaf = gr.Slider(label="Min Samples Leaf", minimum=1, maximum=20, value=5,
+                                                    interactive=True, step=1)
+                with gr.Tab("Random Forest"):
+                    rf_n_estimators = gr.Slider(label="N Estimators", minimum=1, maximum=100, value=100,
+                                                interactive=True, step=1)
+                    rf_max_depth = gr.Slider(label="Max Depth", minimum=1, maximum=100, value=100,
+                                             interactive=True, step=1)
+                    # rf_custom = gr.Dropdown([True, False], label="Custom", value=False, interactive=True)
+                with gr.Tab("Linear Regression"):
+                    lr_learning_rate = gr.Slider(label="Max Depth", minimum=0.001, maximum=1, value=0.01,
+                                                 interactive=True, step=0.01)
+                    lr_num_iterations = gr.Slider(label="Num of Iterations", minimum=50, maximum=5000, value=1000,
+                                                  interactive=True, step=50)
             all_btn = gr.Button(value="Run all algorithms/dataset", variant="secondary")
-            gr.Markdown("## or pick the algorithm, district or year to filter the dataset")
+            gr.Markdown("### or pick the algorithm, district or year to filter the dataset")
             with gr.Column():
                 alg = gr.Dropdown(["All", "Decision Tree - Custom", "Decision Tree - SKLearn",
                                    "Random Forest - Custom", "Random Forest - SKLearn",
@@ -384,31 +459,11 @@ with gr.Blocks() as gr_output:
                     ["Southern Harbour", "Northern Harbour", "South Eastern", "Western", "Northern",
                      "Gozo & Comino", "All"], label="Select District", value="All")
                 year = gr.Dropdown(list(mapping_display["year"].keys()) + ["All"], label="Select Year", value="All")
-                gr.Markdown("### Parameters")
-                with gr.Row():
-                    with gr.Tab("Decision Tree"):
-                        dt_max_depth = gr.Slider(label="Max Depth", minimum=1, maximum=100, value=100, interactive=True,
-                                                 step=1)
-                        dt_min_samples_split = gr.Slider(label="Min Samples Split", minimum=0, maximum=20, value=2,
-                                                         interactive=True, step=1)
-                        dt_min_samples_leaf = gr.Slider(label="Min Samples Leaf", minimum=1, maximum=20, value=5,
-                                                        interactive=True, step=1)
-                    with gr.Tab("Random Forest"):
-                        rf_n_estimators = gr.Slider(label="N Estimators", minimum=1, maximum=100, value=100,
-                                                    interactive=True, step=1)
-                        rf_max_depth = gr.Slider(label="Max Depth", minimum=1, maximum=20, value=1,
-                                                 interactive=True, step=1)
-                        # rf_custom = gr.Dropdown([True, False], label="Custom", value=False, interactive=True)
-                    with gr.Tab("Linear Regression"):
-                        lr_learning_rate = gr.Slider(label="Max Depth", minimum=0.001, maximum=1, value=0.01,
-                                                     interactive=True, step=0.01)
-                        lr_num_iterations = gr.Slider(label="Num of Iterations", minimum=50, maximum=5000, value=1000,
-                                                      interactive=True, step=50)
                 with gr.Row():
                     submit_btn = gr.Button(value="Run", variant="primary")
-                    clr_btn = gr.ClearButton(variant="stop")
         with gr.Column():
             gr.Markdown("# Outputs")
+            gr.Markdown("## Filtered Inputs/Outputs")
             with gr.Tab("Filtered Dataset Records"):
                 filtered_records = gr.Dataframe(label="", height=300)
             with gr.Tab("Total X_Test Output"):
@@ -420,21 +475,42 @@ with gr.Blocks() as gr_output:
             gr.Markdown("## Prediction Results")
             predictions = gr.Dataframe(label="Predicted vs Actual", height=300)
             gr.Markdown("## Graph Plots")
-            scatter_plot = gr.Plot(label="Scatter Plot")
-            line_plot = gr.Plot(label="Line Plot")
+            with gr.Tab("Scatter Plots"):
+                scatter_plot = gr.Plot(label="All Algorithms")
+                custom_scatter_plot = gr.Plot(label="Custom Implementations")
+                sklearn_scatter_plot = gr.Plot(label="SKLearn Implementations")
+                dt_scatter_plot = gr.Plot(label="Decision Tree Implementations")
+                rf_scatter_plot = gr.Plot(label="Random Forest Implementations")
+                lr_scatter_plot = gr.Plot(label="Linear Regression Implementations")
+            with gr.Tab("Line Plots"):
+                line_plot = gr.Plot(label="All Algorithms")
+                custom_line_plot = gr.Plot(label="Custom Implementations")
+                sklearn_line_plot = gr.Plot(label="SKLearn Implementations")
+                dt_line_plot = gr.Plot(label="Decision Tree Implementations")
+                rf_line_plot = gr.Plot(label="Random Forest Implementations")
+                lr_line_plot = gr.Plot(label="Linear Regression Implementations")
+            with gr.Tab("Residual Plots"):
+                dt_residual_plot = gr.Plot(label="Custom Decision Tree")
+                dts_residual_plot = gr.Plot(label="SKLearn Decision Tree")
+                rf_residual_plot = gr.Plot(label="Custom Random Forest")
+                rfs_residual_plot = gr.Plot(label="SKLearn Random Forest")
+                rfsdt_residual_plot = gr.Plot(label="Custom Random Forest using SKLearn Decision Trees")
+                lr_residual_plot = gr.Plot(label="Custom Linear Regression")
+                lrs_residual_plot = gr.Plot(label="SKLearn Linear Regression")
+
 
     # Filtering logic
     submit_btn.click(filter_data, inputs=[record, alg, district, year,
                                           dt_max_depth, dt_min_samples_split, dt_min_samples_leaf,
                                           rf_n_estimators, rf_max_depth,
                                           lr_learning_rate, lr_num_iterations],
-                     outputs=[filtered_records, predictions, total_x_test, filtered_x_test, evaluation])
+                     outputs=[filtered_records, predictions, total_x_test, filtered_x_test, evaluation, scatter_plot, custom_scatter_plot, sklearn_scatter_plot, dt_scatter_plot, rf_scatter_plot, lr_scatter_plot, line_plot, custom_line_plot, sklearn_line_plot, dt_line_plot, rf_line_plot, lr_line_plot, dt_residual_plot, dts_residual_plot, rf_residual_plot, rfs_residual_plot, rfsdt_residual_plot, lr_residual_plot, lrs_residual_plot])
 
     # Run all algorithms/dataset optimization
     all_btn.click(process_all_algorithms, inputs=[dt_max_depth, dt_min_samples_split, dt_min_samples_leaf,
                                                   rf_n_estimators, rf_max_depth,
                                                   lr_learning_rate, lr_num_iterations],
-                  outputs=[predictions, evaluation, scatter_plot, line_plot])
+                  outputs=[predictions, evaluation, scatter_plot, custom_scatter_plot, sklearn_scatter_plot, dt_scatter_plot, rf_scatter_plot, lr_scatter_plot, line_plot, custom_line_plot, sklearn_line_plot, dt_line_plot, rf_line_plot, lr_line_plot, dt_residual_plot, dts_residual_plot, rf_residual_plot, rfs_residual_plot, rfsdt_residual_plot, lr_residual_plot, lrs_residual_plot])
 
 if __name__ == "__main__":
     gr_output.launch()
