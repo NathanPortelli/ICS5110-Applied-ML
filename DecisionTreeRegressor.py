@@ -77,20 +77,6 @@ class DecisionTreeRegressor():
 
         return best_split
 
-    def print_tree(self, tree=None, indent=" "):
-        if not tree:
-            tree = self.root
-
-        if tree.value is not None:
-            print(tree.value)
-
-        else:
-            print("X_" + str(tree.feature_index), "<=", tree.threshold, "?", tree.var_red)
-            print("%sleft:" % (indent), end="")
-            self.print_tree(tree.left, indent + indent)
-            print("%sright:" % (indent), end="")
-            self.print_tree(tree.right, indent + indent)
-
     def fit(self, X, Y, min_samples_split=None, max_depth=None):
         if min_samples_split is not None:
             self.min_samples_split = min_samples_split
