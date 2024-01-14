@@ -3,7 +3,8 @@ import gradio as gr
 import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, explained_variance_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, explained_variance_score, median_absolute_error, max_error
+import time
 
 from RandomForestRegressor import RandomForestRegressor
 from LinearRegression import LinearRegression
@@ -92,8 +93,7 @@ def residual_plot_graph(x, y, color='black'):
 # Decision Tree - Custom
 def decision_tree(X_train, y_train, X_test, max_depth, min_samples_split):
     Custom_Decision_Tree_Regressor = DecisionTreeRegressor(max_depth=max_depth,
-                                                           min_samples_split=min_samples_split,
-                                                           min_samples_leaf=None)
+                                                           min_samples_split=min_samples_split)
     Custom_Decision_Tree_Regressor.fit(X_train.values, y_train.values)
     Custom_Decision_Tree_Regressor_Prediction = Custom_Decision_Tree_Regressor.predict(X_test.values)
     return Custom_Decision_Tree_Regressor_Prediction
@@ -110,10 +110,9 @@ def decision_tree_sklearn(X_train, y_train, X_test, max_depth, min_samples_split
 
 
 # Random Forest - Custom
-def random_forest(X_train, y_train, X_test, n_estimators, max_depth, min_samples_split, min_samples_leaf):
+def random_forest(X_train, y_train, X_test, n_estimators, max_depth, min_samples_split):
     Custom_Random_Forest_Regressor = RandomForestRegressor(n_estimators=n_estimators, max_depth=max_depth,
-                                                           min_samples_split=min_samples_split,
-                                                           min_samples_leaf=min_samples_leaf)
+                                                           min_samples_split=min_samples_split)
     Custom_Random_Forest_Regressor.fit(X_train, y_train)
     Custom_Random_Forest_Regressor_Prediction = Custom_Random_Forest_Regressor.predict(X_test)
     return Custom_Random_Forest_Regressor_Prediction
@@ -132,7 +131,6 @@ def random_forest_sklearn_decision_trees(X_train, y_train, X_test, n_estimators,
     SKLearn_Decision_Trees_Random_Forest_Regressor = RandomForestRegressor(n_estimators=n_estimators,
                                                                            max_depth=max_depth,
                                                                            min_samples_split=min_samples_split,
-                                                                           min_samples_leaf=min_samples_leaf,
                                                                            custom=False)
     SKLearn_Decision_Trees_Random_Forest_Regressor.fit(X_train, y_train)
     SKLearn_Decision_Trees_Random_Forest_Regressor_Prediction = SKLearn_Decision_Trees_Random_Forest_Regressor.predict(
@@ -157,14 +155,20 @@ def linear_regression_sklearn(X_train, y_train, X_test):
 
 
 def evaluate_algorithm(algorithm_function, X_train, y_train, X_test, y_test, algorithm_parameters):
+    start_time = time.time()
     prediction = algorithm_function(X_train, y_train, X_test, **algorithm_parameters)
+    end_time = time.time()
     mae = mean_absolute_error(y_test, prediction)
     mse = mean_squared_error(y_test, prediction)
     rmse = mean_squared_error(y_test, prediction, squared=True)
     r2 = r2_score(y_test, prediction)
     variance = explained_variance_score(y_test, prediction)
+    medae = median_absolute_error(y_test, prediction)
+    maxae = max_error(y_test, prediction)
+    execution_time = end_time - start_time
+
     prediction_results = pd.DataFrame(prediction)
-    return prediction_results, mae, mse, rmse, r2, variance
+    return prediction_results, mae, mse, rmse, r2, variance, medae, maxae, execution_time
 
 
 # Used both for the "All" button and for the filtered data using all algorithms
@@ -172,63 +176,69 @@ def process_all_algorithms(dt_max_depth, dt_min_samples_split, dt_min_samples_le
                            lr_learning_rate, lr_num_iterations):
     results = {}
     # Decision Tree - Custom
-    prediction_dt, mae_dt, mse_dt, rmse_dt, r2_dt, variance_dt = evaluate_algorithm(
+    prediction_dt, mae_dt, mse_dt, rmse_dt, r2_dt, variance_dt, medae_dt, max_ae_dt, time_dt = evaluate_algorithm(
         decision_tree, X_train, y_train, X_test, y_test,
         {"max_depth": dt_max_depth, "min_samples_split": dt_min_samples_split})
 
     results["Decision Tree - Custom"] = {"Algorithm": "Decision Tree - Custom", "MAE": mae_dt, "MSE": mse_dt,
-                                         "RMSE": rmse_dt, "R2": r2_dt, "Explained Variance": variance_dt}
+                                         "RMSE": rmse_dt, "R2": r2_dt, "Explained Variance": variance_dt,
+                                         "MedAE": medae_dt, "Max AE": max_ae_dt, "Execution Time": time_dt}
 
     # Decision Tree - SKLearn
-    prediction_dts, mae_dts, mse_dts, rmse_dts, r2_dts, variance_dts = evaluate_algorithm(
+    prediction_dts, mae_dts, mse_dts, rmse_dts, r2_dts, variance_dts, medae_dts, max_ae_dts, time_dts = evaluate_algorithm(
         decision_tree_sklearn, X_train, y_train,
         X_test, y_test, {"max_depth": dt_max_depth, "min_samples_split": dt_min_samples_split,
                          "min_samples_leaf": dt_min_samples_leaf})
     results["Decision Tree - SKLearn"] = {"Algorithm": "Decision Tree - SKLearn", "MAE": mae_dts, "MSE": mse_dts,
-                                          "RMSE": rmse_dts, "R2": r2_dts, "Explained Variance": variance_dts}
+                                          "RMSE": rmse_dts, "R2": r2_dts, "Explained Variance": variance_dts,
+                                          "MedAE": medae_dts, "Max AE": max_ae_dts, "Execution Time": time_dts}
 
     # Random Forest - Custom
-    prediction_rf, mae_rf, mse_rf, rmse_rf, r2_rf, variance_rf = evaluate_algorithm(random_forest, X_train, y_train, X_test,
+    prediction_rf, mae_rf, mse_rf, rmse_rf, r2_rf, variance_rf, medae_rf, max_ae_rf, time_rf = evaluate_algorithm(random_forest, X_train, y_train, X_test,
                                                                      y_test, {"max_depth": rf_max_depth,
                                                                               "n_estimators": rf_n_estimators,
-                                                                              "min_samples_split": dt_min_samples_split,
-                                                                              "min_samples_leaf": dt_min_samples_leaf})
+                                                                              "min_samples_split": dt_min_samples_split})
 
     results["Random Forest - Custom"] = {"Algorithm": "Random Forest - Custom", "MAE": mae_rf, "MSE": mse_rf,
-                                         "RMSE": rmse_rf, "R2": r2_rf, "Explained Variance": variance_rf}
+                                         "RMSE": rmse_rf, "R2": r2_rf, "Explained Variance": variance_rf,
+                                         "MedAE": medae_rf, "Max AE": max_ae_rf, "Execution Time": time_rf}
 
     # Random Forest - SKLearn
-    prediction_rfs, mae_rfs, mse_rfs, rmse_rfs, r2_rfs, variance_rfs = evaluate_algorithm(random_forest_sklearn,
+    prediction_rfs, mae_rfs, mse_rfs, rmse_rfs, r2_rfs, variance_rfs, medae_rfs, max_ae_rfs, time_rfs = evaluate_algorithm(random_forest_sklearn,
                                                                                           X_train, y_train, X_test,
                                                                                           y_test, {})
     results["Random Forest - SKLearn"] = {"Algorithm": "Random Forest - SKLearn", "MAE": mae_rfs, "MSE": mse_rfs,
-                                          "RMSE": rmse_rfs, "R2": r2_rfs, "Explained Variance": variance_rfs}
+                                          "RMSE": rmse_rfs, "R2": r2_rfs, "Explained Variance": variance_rfs,
+                                          "MedAE": medae_rfs, "Max AE": max_ae_rfs, "Execution Time": time_rfs}
 
     # Random Forest - Custom using SKLearn Decision Trees
-    prediction_rfsdt, mae_rfsdt, mse_rfsdt, rmse_rfsdt, r2_rfsdt, variance_rfsdt = evaluate_algorithm(
+    prediction_rfsdt, mae_rfsdt, mse_rfsdt, rmse_rfsdt, r2_rfsdt, variance_rfsdt, medae_rfsdt, max_ae_rfsdt, time_rfsdt = evaluate_algorithm(
         random_forest_sklearn_decision_trees, X_train, y_train, X_test, y_test,
         {"max_depth": rf_max_depth, "n_estimators": rf_n_estimators, "min_samples_split": dt_min_samples_split,
          "min_samples_leaf": dt_min_samples_leaf})
 
     results["Random Forest - Custom using SKLearn DT"] = {"Algorithm": "Random Forest - Custom using SKLearn DT",
                                                           "MAE": mae_rfsdt, "MSE": mse_rfsdt, "RMSE": rmse_rfsdt,
-                                                          "R2": r2_rfsdt, "Explained Variance": variance_rfsdt}
+                                                          "R2": r2_rfsdt, "Explained Variance": variance_rfsdt,
+                                                          "MedAE": medae_rfsdt, "Max AE": max_ae_rfsdt, "Execution Time": time_rfsdt}
 
     # Linear Regression - Custom
-    prediction_lr, mae_lr, mse_lr, rmse_lr, r2_lr, variance_lr = evaluate_algorithm(linear_regression, X_train, y_train,
+    prediction_lr, mae_lr, mse_lr, rmse_lr, r2_lr, variance_lr, medae_lr, max_ae_lr, time_lr = evaluate_algorithm(linear_regression, X_train, y_train,
                                                                                     X_test, y_test,
                                                                                     {"learning_rate": lr_learning_rate,
                                                                                      "num_iterations": lr_num_iterations})
     results["Linear Regression - Custom"] = {"Algorithm": "Linear Regression - Custom", "MAE": mae_lr, "MSE": mse_lr,
-                                             "RMSE": rmse_lr, "R2": r2_lr, "Explained Variance": variance_lr}
+                                             "RMSE": rmse_lr, "R2": r2_lr, "Explained Variance": variance_lr,
+                                             "MedAE": medae_lr, "Max AE": max_ae_lr, "Execution Time": time_lr}
 
     # Linear Regression - SKLearn
-    prediction_lrs, mae_lrs, mse_lrs, rmse_lrs, r2_lrs, variance_lrs = evaluate_algorithm(linear_regression_sklearn,
+    prediction_lrs, mae_lrs, mse_lrs, rmse_lrs, r2_lrs, variance_lrs, medae_lrs, max_ae_lrs, time_lrs = evaluate_algorithm(linear_regression_sklearn,
                                                                                           X_train, y_train, X_test,
                                                                                           y_test, {})
     results["Linear Regression - SKLearn"] = {"Algorithm": "Linear Regression - SKLearn", "MAE": mae_lrs,
                                               "MSE": mse_lrs, "RMSE": rmse_lrs, "R2": r2_lrs,
-                                              "Explained Variance": variance_lrs}
+                                              "Explained Variance": variance_lrs, "MedAE": medae_lrs,
+                                              "Max AE": max_ae_lrs, "Execution Time": time_lrs}
 
     df_results = pd.DataFrame(results).T  # Convert results to DataFrame
 
@@ -348,29 +358,29 @@ def filter_data(records, algorithm, selected_district, selected_year, dt_max_dep
 
     # Evaluate algorithm
     if algorithm == "Decision Tree - Custom":
-        prediction_dt, mae, mse, rmse, r2, variance = evaluate_algorithm(
+        prediction_dt, mae, mse, rmse, r2, variance, medae, max_ae, time = evaluate_algorithm(
             decision_tree, X_train, y_train, X_test, y_test,
             {"max_depth": dt_max_depth, "min_samples_split": dt_min_samples_split})
         all_predictions["Decision Tree - Custom"] = prediction_dt
     elif algorithm == "Decision Tree - SKLearn":
-        prediction_dts, mae, mse, rmse, r2, variance = evaluate_algorithm(
+        prediction_dts, mae, mse, rmse, r2, variance, medae, max_ae, time = evaluate_algorithm(
             decision_tree_sklearn, X_train, y_train,
             X_test, y_test, {"max_depth": dt_max_depth, "min_samples_split": dt_min_samples_split,
                              "min_samples_leaf": dt_min_samples_leaf})
         all_predictions["Decision Tree - SKLearn"] = prediction_dts
     elif algorithm == "Random Forest - Custom":
-        prediction_rf, mae, mse, rmse, r2, variance = evaluate_algorithm(random_forest, X_train, y_train, X_test,
+        prediction_rf, mae, mse, rmse, r2, variance, medae, max_ae, time = evaluate_algorithm(random_forest, X_train, y_train, X_test,
                                                                          y_test, {"max_depth": rf_max_depth,
                                                                                   "n_estimators": rf_n_estimators,
                                                                                   "min_samples_split": dt_min_samples_split,
                                                                                   "min_samples_leaf": dt_min_samples_leaf})
         all_predictions["Random Forest - Custom"] = prediction_rf
     elif algorithm == "Random Forest - SKLearn":
-        prediction_rfs, mae, mse, rmse, r2, variance = evaluate_algorithm(random_forest_sklearn, X_train, y_train,
+        prediction_rfs, mae, mse, rmse, r2, variance, medae, max_ae, time = evaluate_algorithm(random_forest_sklearn, X_train, y_train,
                                                                           X_test, y_test, {})
         all_predictions["Random Forest - SKLearn"] = prediction_rfs
     elif algorithm == "Random Forest - Custom using SKLearn DT":
-        prediction_rfsdt, mae, mse, rmse, r2, variance = evaluate_algorithm(random_forest_sklearn_decision_trees,
+        prediction_rfsdt, mae, mse, rmse, r2, variance, medae, max_ae, time = evaluate_algorithm(random_forest_sklearn_decision_trees,
                                                                             X_train, y_train, X_test, y_test,
                                                                             {"max_depth": rf_max_depth,
                                                                                   "n_estimators": rf_n_estimators,
@@ -378,22 +388,25 @@ def filter_data(records, algorithm, selected_district, selected_year, dt_max_dep
                                                                                   "min_samples_leaf": dt_min_samples_leaf})
         all_predictions["Random Forest - Custom using SKLearn DT"] = prediction_rfsdt
     elif algorithm == "Linear Regression - Custom":
-        prediction_lr, mae, mse, rmse, r2, variance = evaluate_algorithm(linear_regression, X_train, y_train,
+        prediction_lr, mae, mse, rmse, r2, variance, medae, max_ae, time = evaluate_algorithm(linear_regression, X_train, y_train,
                                                                          X_test, y_test,
                                                                          {"learning_rate": lr_learning_rate,
                                                                           "num_iterations": lr_num_iterations})
         all_predictions["Linear Regression - Custom"] = prediction_lr
     elif algorithm == "Linear Regression - SKLearn":
-        prediction_lrs, mae, mse, rmse, r2, variance = evaluate_algorithm(linear_regression_sklearn, X_train,
+        prediction_lrs, mae, mse, rmse, r2, variance, medae, max_ae, time = evaluate_algorithm(linear_regression_sklearn, X_train,
                                                                           y_train, X_test, y_test,
                                                                           {"learning_rate": lr_learning_rate,
                                                                            "num_iterations": lr_num_iterations})
         all_predictions["Linear Regression - SKLearn"] = prediction_lrs
     # In case of error
     else:
-        mae, mse, rmse, r2, variance = None, None, None, None, None
+        mae, mse, rmse, r2, variance, medae, max_ae, time = None, None, None, None, None, None, None, None
 
-    results = [{"Algorithm": algorithm, "MAE": mae, "MSE": mse, "RMSE": rmse, "R2": r2, "Explained Variance": variance}]
+    results = [{
+        "Algorithm": algorithm, "MAE": mae, "MSE": mse, "RMSE": rmse, "R2": r2, "Explained Variance": variance,
+        "MedAE": medae, "Max AE": max_ae, "Execution Time": time
+    }]
     df_results = pd.DataFrame(results)  # Convert results to DataFrame
 
     all_predictions = pd.DataFrame(all_predictions)

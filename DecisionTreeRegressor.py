@@ -12,7 +12,7 @@ class Node():
 
 
 class DecisionTreeRegressor():
-    def __init__(self, min_samples_split, max_depth, min_samples_leaf):
+    def __init__(self, min_samples_split, max_depth):
         self.root = None
         self.min_samples_split = min_samples_split
         self.max_depth = max_depth
